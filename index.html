@@ -1,0 +1,107 @@
+<html>
+<head>
+  <title>A D3 map</title>
+  <script src='https://d3js.org/d3.v4.min.js'></script>
+  <script src='neighborhoods.json'></script>
+  <script src="points.json"></script>
+</head>
+<body>
+  <script>
+    let neighborhoodData = ""
+    let pointsData = ""
+    d3.json("neighborhoods.json", function(data) {
+      neighborhoodData = data
+       d3.json("points.json", function(data) {
+        pointsData = data
+        
+        var width = 700,
+        height = 580;
+
+        var svg = d3.select('body')
+          .append('svg')
+          .attr('width', width)
+          .attr('height', height);
+
+        var g = svg.append('g');
+
+        var albersProjection = d3.geoAlbers()
+          .scale(190000)
+          .rotate([71.057, 0])
+          .center([0, 42.313])
+          .translate([width/2, height/2]);
+
+        var geoPath = d3.geoPath()
+            .projection(albersProjection);
+
+        g.selectAll('path')
+          .data(neighborhoodData.features)
+          .enter()
+          .append('path')
+          .attr('fill', '#ccc')
+          .attr('d', geoPath);
+
+
+        data = [];
+        for (let i = 0; i < pointsData.features.length; i++) {
+            data.push({
+                x: albersProjection(pointsData.features[i].geometry.coordinates)[0],
+                y: albersProjection(pointsData.features[i].geometry.coordinates)[1]
+            })
+        }
+
+        console.log(data[0])
+        // line function
+        let line = d3.line()
+            .x(function (d) {return d.x;})
+            .y(function (d) {return d.y;})
+        let path = svg.append("path")
+            .attr("d", line(data))
+            .attr("stroke", "steelblue")
+            .attr("stroke-width", "2")
+            .attr("fill", "none");
+        let totalLength = path.node().getTotalLength();
+        
+        // animate path
+        path
+            .attr("stroke-dasharray", totalLength + " " + totalLength)
+            .attr("stroke-dashoffset", totalLength)
+            .transition()
+            .duration(5000)
+            .attr("stroke-dashoffset", 0);
+
+        //dot plot
+        var rodents = svg.append('g');
+
+        rodents.selectAll('path')
+          .data(pointsData.features)
+          .enter()
+          .append('path')
+          .attr('fill', '#900')
+          .attr('stroke', '#999')
+          .attr('d', geoPath)
+          .on('click', function(){
+              d3.select(this)
+            .attr('opacity', 1)
+            .transition()
+            .duration(1000)
+            .attr('x', width * Math.round(Math.random()))
+            .attr('y', height * Math.round(Math.random()))
+            .attr('opacity', 0)
+            .on('end', function(){
+              d3.select(this).remove();
+            })
+          });
+
+  
+            
+    })
+  })
+
+
+
+
+
+
+  </script>
+</body>
+</html>
